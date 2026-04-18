@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// Mẫu câu hỏi ban đầu (Mock Data)
+// Mock câu hỏi mẫu ban đầu
 const mockQuestions = [
   {
     question: "Ánh sáng truyền qua thủy tinh như thế nào?",
@@ -16,285 +16,82 @@ const mockQuestions = [
     explanation: "Ánh sáng truyền qua thủy tinh phần lớn không bị cản trở, tùy loại thủy tinh."
   },
   {
-    question: "Ai đã phát minh ra điện?",
+    question: "Hình thức vận động nào có thể đạt tới vận tốc ánh sáng?",
     options: {
-      A: "Thomas Edison",
-      B: "Nikola Tesla",
-      C: "Benjamin Franklin",
-      D: "Michael Faraday"
+      A: "Hình thức vận động của ánh sáng",
+      B: "Hình thức vận động của sóng nước",
+      C: "Hình thức vận động của sóng âm",
+      D: "Hình thức vận động của sóng điện từ"
     },
     answer: "D",
-    explanation: "Michael Faraday đã thực hiện nhiều khám phá quan trọng về điện từ."
+    explanation: "Ánh sáng là một loại sóng điện từ có vận tốc cực đại trong vũ trụ."
   },
-  {
-    question: "Môn Địa lý nghiên cứu về gì?",
-    options: {
-      A: "Con người và xã hội",
-      B: "Vật lý và hóa học",
-      C: "Địa chất và môi trường",
-      D: "Lịch sử và văn hóa"
-    },
-    answer: "C",
-    explanation: "Địa lý tập trung vào nghiên cứu về đất đai, địa chất và môi trường."
-  }
+  // Thêm câu hỏi mẫu tiếp theo
 ];
 
-export default function App() {
-  // Trạng thái chính
-  const [step, setStep] = useState('input'); // 'input', 'quiz', 'result'
-  const [promptText, setPromptText] = useState('');
-  const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(120); // 2 phút cho quiz
-  const [bookmarks, setBookmarks] = useState(new Set());
+// Sử dụng hook để lưu trữ trạng thái của ứng dụng
+const App = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showExplanation, setShowExplanation] = useState(false);
 
-  // Phân tích prompt thành câu hỏi
-  const parseQuestions = () => {
-    // Đơn giản: Dùng mẫu câu hỏi có sẵn (mock)
-    setQuestions(mockQuestions);
-    setAnswers({});
-    setCurrentIndex(0);
-    setTimeLeft(120);
-    setStep('quiz');
-  };
+  // Lấy câu hỏi từ mock data
+  const questions = useMemo(() => mockQuestions, []);
 
-  // Đếm ngược thời gian
-  useEffect(() => {
-    if (step === 'quiz' && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && step === 'quiz') {
-      handleFinish();
-    }
-  }, [timeLeft, step]);
-
-  const handleAnswer = (option) => {
-    setAnswers(prev => ({ ...prev, [currentIndex]: option }));
-  };
-
-  const handleNext = () => {
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+  // Hàm kiểm tra đáp án đúng
+  const checkAnswer = (answer) => {
+    if (answer === questions[currentQuestion].answer) {
+      setScore(score + 1);
     }
   };
 
-  const handleBack = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev -1);
-    }
+  // Hàm hiển thị giải thích
+  const showExplanationHandler = () => {
+    setShowExplanation(true);
+    setTimeout(() => {
+      setShowExplanation(false);
+    }, 3000);
   };
 
-  const handleFinish = () => {
-    setStep('result');
+  // Hàm chuyển đến câu hỏi tiếp theo
+  const nextQuestionHandler = () => {
+    setCurrentQuestion(currentQuestion + 1);
   };
 
-  const toggleBookmark = () => {
-    setBookmarks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(currentIndex))
-        newSet.delete(currentIndex);
-      else
-        newSet.add(currentIndex);
-      return newSet;
-    });
+  // Hàm chuyển về câu hỏi trước đó
+  const prevQuestionHandler = () => {
+    setCurrentQuestion(currentQuestion - 1);
   };
 
-  const getScore = useMemo(() => {
-    let correctCount = 0;
-    questions.forEach((q, idx) => {
-      if (answers[idx] === q.answer) correctCount++;
-    });
-    return Math.round((correctCount / questions.length) * 100);
-  }, [answers, questions]);
+  // Đảo ngược câu hỏi
+  const reverseQuestionHandler = () => {
+    setCurrentQuestion(questions.length - currentQuestion - 1);
+  };
 
-  // Render các bước
-  if (step === 'input') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-3xl bg-white bg-opacity-70 backdrop-blur-xl rounded-2xl shadow-xl p-8">
-          <h1 className="text-3xl font-semibold text-center text-indigo-600 mb-4">Quiz Master Pro</h1>
-          <textarea
-            className="w-full h-40 p-4 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
-            placeholder="Dán đề bài câu hỏi ở đây..."
-            value={promptText}
-            onChange={(e) => setPromptText(e.target.value)}
-          />
-          <button
-            className="mt-6 w-full bg-indigo-600 text-white py-3 rounded-2xl hover:bg-indigo-700 transition"
-            onClick={parseQuestions}
-            disabled={!promptText.trim()}
-          >
-            Bắt đầu Quiz
+  return (
+    <div className="container">
+      <h1>Quiz</h1>
+      <h2>Question {currentQuestion + 1}/{questions.length}</h2>
+      <p>{questions[currentQuestion].question}</p>
+      <div className="options">
+        {Object.keys(questions[currentQuestion].options).map((option) => (
+          <button key={option} onClick={() => checkAnswer(option)}>
+            {questions[currentQuestion].options[option]}
           </button>
-        </div>
+        ))}
       </div>
-    );
-  }
-
-  if (step === 'quiz') {
-    const currentQ = questions[currentIndex];
-    const answerSelected = answers[currentIndex];
-    return (
-      <div className="min-h-screen bg-gray-100 flex flex-col p-4">
-        {/* Header: Progress, Timer */}
-        <div className="flex justify-between items-center mb-4">
-          {/* Progress Bar */}
-          <div className="w-full h-1 rounded-full bg-gray-300 overflow-hidden mr-4">
-            <div
-              className="h-1 bg-indigo-600 transition-all duration-300"
-              style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-            />
-          </div>
-          {/* Timer */}
-          <div className="flex items-center space-x-2 text-gray-700 font-medium">
-            <Clock className="w-5 h-5" />
-            <span>{timeLeft}s</span>
-          </div>
+      {showExplanation && (
+        <div className="explanation">
+          <p>Giải thích:</p>
+          <p>{questions[currentQuestion].explanation}</p>
         </div>
+      )}
+      <button onClick={nextQuestionHandler}>Next Question</button>
+      <button onClick={prevQuestionHandler}>Previous Question</button>
+      <button onClick={reverseQuestionHandler}>Reverse Question</button>
+      <p>Score: {score}</p>
+    </div>
+  );
+};
 
-        {/* Question Card */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="flex-1 bg-white bg-opacity-70 backdrop-blur-xl rounded-2xl shadow-xl p-6 mb-4 flex flex-col justify-center"
-        >
-          <h2 className="text-xl font-semibold mb-6">{currentQ.question}</h2>
-          {/* Options */}
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(currentQ.options).map(([key, text]) => (
-              <button
-                key={key}
-                onClick={() => handleAnswer(key)}
-                className={`transition-transform duration-200 rounded-2xl p-4 border-2 ${
-                  answerSelected === key
-                    ? 'border-indigo-600 bg-indigo-100 scale-105'
-                    : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'
-                }`}
-              >
-                <div className="font-semibold">{key}:</div>
-                <div>{text}</div>
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mb-4">
-          <button
-            className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-2xl transition"
-            onClick={handleBack}
-            disabled={currentIndex === 0}
-          >
-            Quay lại
-          </button>
-          {currentIndex < questions.length - 1 ? (
-            <button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl transition disabled:opacity-50"
-              onClick={handleNext}
-              disabled={!answerSelected}
-            >
-              Tiếp theo
-            </button>
-          ) : (
-            <button
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl transition disabled:opacity-50"
-              onClick={handleFinish}
-              disabled={!answerSelected}
-            >
-              Nộp bài
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'result') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-4xl bg-white bg-opacity-80 backdrop-blur-xl rounded-2xl shadow-xl p-8 space-y-6">
-          <h1 className="text-4xl font-bold text-center text-indigo-600 mb-4">Kết Quả</h1>
-          
-          {/* Điểm số và huy hiệu */}
-          <div className="text-center">
-            <div className="text-5xl font-semibold mb-2">{getScore}%</div>
-            <div className="text-lg text-gray-600">Bạn đã hoàn thành bài quiz!</div>
-            {getScore() >= 80 ? (
-              <div className="mt-4 text-green-500 font-semibold">Xuất sắc! 🎉</div>
-            ) : getScore() >= 50 ? (
-              <div className="mt-4 text-yellow-500 font-semibold">Tốt! Cần cố gắng hơn.</div>
-            ) : (
-              <div className="mt-4 text-red-500 font-semibold">Cần cải thiện thêm nhé.</div>
-            )}
-          </div>
-
-          {/* Biểu đồ phần trăm */}
-          <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-4 bg-indigo-600 transition-all duration-500"
-              style={{ width: `${getScore}%` }}
-            />
-          </div>
-
-          {/* Danh sách câu hỏi */}
-          <div className="max-h-96 overflow-y-auto space-y-4 mt-6">
-            {questions.map((q, idx) => {
-              const userAns = answers[idx];
-              const isCorrect = userAns === q.answer;
-              return (
-                <div key={idx} className="p-4 rounded-2xl shadow-md bg-gray-100 border-2 border-gray-300">
-                  <div className="mb-2 font-semibold">{idx + 1}. {q.question}</div>
-                  {Object.entries(q.options).map(([k, v]) => (
-                    <div
-                      key={k}
-                      className={`p-2 mb-1 rounded ${
-                        k === q.answer ? 'bg-green-200 border-green-400' : ''
-                      } ${userAns === k && k !== q.answer ? 'bg-red-200 border-red-400' : ''}`}
-                    >
-                      {k}: {v} {k === q.answer ? '✅' : ''} {userAns === k && k !== q.answer ? '❌' : ''}
-                    </div>
-                  ))}
-                  <div className="mt-2 text-sm text-gray-600">
-                    Giải thích: {q.explanation}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Buttons làm lại / tạo mới */}
-          <div className="flex justify-center space-x-4 mt-6">
-            <button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl transition"
-              onClick={() => {
-                setStep('input');
-                setQuestions([]);
-                setAnswers({});
-                setCurrentIndex(0);
-                setPromptText('');
-              }}
-            >
-              Tạo bài test mới
-            </button>
-            <button
-              className="bg-gray-300 hover:bg-gray-400 px-6 py-3 rounded-2xl transition"
-              onClick={() => {
-                setStep('quiz');
-                setQuestions(questions);
-                setAnswers(answers);
-                setCurrentIndex(0);
-                setTimeLeft(120);
-              }}
-            >
-              Làm lại
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null; // fallback
-}
+export default App;
